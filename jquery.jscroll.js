@@ -13,6 +13,8 @@
  * @version 2.3.5
  * @requires jQuery v1.4.3+
  * @preserve
+ * 
+ * Modified - 10/28/16 - JCR - added inner scroll functionality
  */
 (function($) {
 
@@ -30,6 +32,7 @@
             nextSelector: 'a:last',
             contentSelector: '',
             pagingSelector: '',
+			innerScrollSelector: '',
             callback: false
         }
     };
@@ -42,7 +45,9 @@
             _userOptions = (typeof options === 'function') ? { callback: options } : options,
             _options = $.extend({}, $.jscroll.defaults, _userOptions, _data || {}),
             _isWindow = ($e.css('overflow-y') === 'visible'),
-            _$next = $e.find(_options.nextSelector).first(),
+			_hasInnerScroll = _options.innerScrollSelector !== '',
+			_$innerScroll = _hasInnerScroll ? $(_options.innerScrollSelector) : $e,
+            _$next = _$innerScroll.find(_options.nextSelector).first(),
             _$window = $(window),
             _$body = $('body'),
             _$scroll = _isWindow ? _$window : $e,
@@ -59,8 +64,16 @@
 
             // Wrap inner content, if it isn't already
             _wrapInnerContent = function() {
-                if (!$e.find('.jscroll-inner').length) {
-                    $e.contents().wrapAll('<div class="jscroll-inner" />');
+                if (!_$innerScroll.find('.jscroll-inner').length) {
+                    _$innerScroll.contents().wrapAll('<div class="jscroll-inner" />');
+                }
+				_wrapOuterContent();
+            },
+			
+			// Wrap outer content, if it isn't already
+            _wrapOuterContent = function() {
+                if (_hasInnerScroll && !$e.find('.jscroll-outer').length) {
+                    $e.contents().wrapAll('<div class="jscroll-outer" />');
                 }
             },
 
@@ -89,7 +102,7 @@
             _observe = function() {
                 if ($e.is(':visible')) {
                     _wrapInnerContent();
-                    var $inner = $e.find('div.jscroll-inner').first(),
+                    var $inner = _hasInnerScroll ? $e.find('div.jscroll-outer').first() : $e.find('div.jscroll-inner').first(),
                         data = $e.data('jscroll'),
                         borderTopWidth = parseInt($e.css('borderTopWidth'), 10),
                         borderTopWidthInt = isNaN(borderTopWidth) ? 0 : borderTopWidth,
@@ -120,7 +133,7 @@
             },
 
             _setBindings = function() {
-                var $next = $e.find(_options.nextSelector).first();
+                var $next = _$next;
                 if (!$next.length) {
                     return;
                 }
@@ -150,7 +163,7 @@
 
             // Load the next set of content, if available
             _load = function() {
-                var $inner = $e.find('div.jscroll-inner').first(),
+                var $inner = _$innerScroll.find('div.jscroll-inner').first(),
                     data = $e.data('jscroll');
 
                 data.waiting = true;
